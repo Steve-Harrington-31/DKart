@@ -13,7 +13,7 @@ export const Route = createFileRoute("/orders")({
 
 const statusColor: Record<string, string> = {
   pending: "bg-warning/20 text-warning-foreground",
-  confirmed: "bg-accent/20 text-accent",
+  processing: "bg-accent/20 text-accent",
   shipped: "bg-primary/20 text-primary",
   delivered: "bg-success/20 text-success",
   cancelled: "bg-destructive/20 text-destructive",

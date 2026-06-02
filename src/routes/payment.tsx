@@ -58,7 +58,7 @@ function PaymentPage() {
           shipping_address: address,
           payment_id: paymentId,
           payment_status: paymentStatus,
-          status: "confirmed",
+          status: "processing",
         })
         .select()
         .single();
