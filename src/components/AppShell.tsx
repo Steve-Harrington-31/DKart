@@ -1,16 +1,18 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Home, LayoutGrid, Heart, User, Search, ShoppingCart, Menu } from "lucide-react";
 import { Logo } from "./Logo";
 import { useCart } from "@/store/cart-store";
 import { useAuth } from "@/lib/auth";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useWishlist } from "@/store/wishlist-store";
 
 export function AppShell({ children, hideSearch }: { children: ReactNode; hideSearch?: boolean }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const cartCount = useCart((s) => s.count());
   const loadCart = useCart((s) => s.load);
   const loadWishlist = useWishlist((s) => s.load);
+  const [q, setQ] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -18,6 +20,11 @@ export function AppShell({ children, hideSearch }: { children: ReactNode; hideSe
       loadWishlist(user.id);
     }
   }, [user, loadCart, loadWishlist]);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (q.trim()) navigate({ to: "/search", search: { q: q.trim() } });
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
@@ -28,19 +35,22 @@ export function AppShell({ children, hideSearch }: { children: ReactNode; hideSe
           </button>
           <Link to="/home"><Logo /></Link>
           {!hideSearch && (
-            <div className="ml-2 flex-1 hidden md:block">
+            <form onSubmit={submit} className="ml-2 flex-1 hidden md:block">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
                   className="w-full rounded-full bg-muted pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Search for products, brands and more"
                 />
               </div>
-            </div>
+            </form>
           )}
           <nav className="ml-auto hidden md:flex items-center gap-6 text-sm">
             <Link to="/home" className="text-foreground hover:text-primary">Home</Link>
             <Link to="/categories" className="text-foreground hover:text-primary">Categories</Link>
+            <Link to="/orders" className="text-foreground hover:text-primary">Orders</Link>
             <Link to="/wishlist" className="text-foreground hover:text-primary">Wishlist</Link>
             <Link to="/account" className="text-foreground hover:text-primary">Account</Link>
           </nav>
@@ -54,15 +64,16 @@ export function AppShell({ children, hideSearch }: { children: ReactNode; hideSe
           </Link>
         </div>
         {!hideSearch && (
-          <div className="px-4 pb-3 md:hidden">
-            <div className="relative">
+          <form onSubmit={submit} className="px-4 pb-3 md:hidden">
+            <div className="relative" onClick={() => navigate({ to: "/search", search: { q: "" } })}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
-                className="w-full rounded-full bg-muted pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                readOnly
+                className="w-full rounded-full bg-muted pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring cursor-pointer"
                 placeholder="Search DKart"
               />
             </div>
-          </div>
+          </form>
         )}
       </header>
 

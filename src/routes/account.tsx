@@ -51,11 +51,11 @@ function AccountPage() {
       </div>
 
       <div className="mt-4 rounded-2xl bg-card border border-border overflow-hidden">
-        <MenuItem icon={Package} label="My Orders" to="/cart" />
+        <MenuItem icon={Package} label="My Orders" to="/orders" />
         <MenuItem icon={Inbox} label="Inbox" />
         <MenuItem icon={Heart} label="Saved Items" to="/wishlist" />
         <MenuItem icon={Clock} label="Recently Viewed" />
-        <MenuItem icon={MapPin} label="Address Book" />
+        <MenuItem icon={MapPin} label="Address Book" to="/addresses" />
         <MenuItem icon={Settings} label="Account Management" />
       </div>
 

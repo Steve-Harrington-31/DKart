@@ -80,7 +80,7 @@ function CartPage() {
           <Row label="Total Amount" value={formatINR(total)} bold />
           {savings > 0 && <p className="text-xs font-semibold text-success">You will save {formatINR(savings)} on this order</p>}
           <button
-            onClick={() => toast("Checkout coming in Phase 2", { icon: "🛒" })}
+            onClick={() => navigate({ to: "/checkout" })}
             className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground hover:bg-primary/90"
           >
             Proceed to Checkout
