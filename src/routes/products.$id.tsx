@@ -102,27 +102,39 @@ function ProductDetail() {
             )}
           </div>
 
-          <div className="mt-5 flex items-center gap-3">
-            <span className="text-sm font-medium text-foreground">Quantity</span>
-            <div className="flex items-center rounded-lg border border-border">
-              <button onClick={() => setQty(Math.max(1, qty - 1))} className="p-2"><Minus className="h-4 w-4" /></button>
-              <span className="w-10 text-center text-sm font-semibold">{qty}</span>
-              <button onClick={() => setQty(Math.min(p.quantity, qty + 1))} className="p-2"><Plus className="h-4 w-4" /></button>
+          {outOfStock ? (
+            <div className="mt-5 flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive">
+              <AlertTriangle className="h-4 w-4" /> Out of stock — check back soon
             </div>
-            <button onClick={async () => { if (!user) return toast.error("Login"); await toggleWish(user.id, p.id); }}
-              className="ml-auto grid h-10 w-10 place-items-center rounded-lg border border-border">
-              <Heart className={`h-5 w-5 ${inWish ? "fill-destructive text-destructive" : ""}`} />
-            </button>
-          </div>
+          ) : (
+            <>
+              {lowStock && (
+                <p className="mt-3 text-sm font-semibold text-warning">Only {p.quantity} left in stock!</p>
+              )}
+              <div className="mt-5 flex items-center gap-3">
+                <span className="text-sm font-medium text-foreground">Quantity</span>
+                <div className="flex items-center rounded-lg border border-border">
+                  <button onClick={() => setQty(Math.max(1, qty - 1))} className="p-2"><Minus className="h-4 w-4" /></button>
+                  <span className="w-10 text-center text-sm font-semibold">{qty}</span>
+                  <button onClick={() => setQty(Math.min(p.quantity, qty + 1))} className="p-2"><Plus className="h-4 w-4" /></button>
+                </div>
+                <button onClick={async () => { if (!user) return toast.error("Login"); await toggleWish(user.id, p.id); }}
+                  className="ml-auto grid h-10 w-10 place-items-center rounded-lg border border-border">
+                  <Heart className={`h-5 w-5 ${inWish ? "fill-destructive text-destructive" : ""}`} />
+                </button>
+              </div>
 
-          <div className="mt-4 flex gap-3">
-            <button onClick={handleAdd} className="flex-1 rounded-xl border border-primary py-3 font-semibold text-primary hover:bg-primary/5">
-              Add to Cart
-            </button>
-            <Link to="/cart" onClick={handleAdd} className="flex-1 grid place-items-center rounded-xl bg-primary py-3 font-semibold text-primary-foreground hover:bg-primary/90">
-              Buy Now
-            </Link>
-          </div>
+              <div className="mt-4 flex gap-3">
+                <button onClick={handleAdd} className="flex-1 rounded-xl border border-primary py-3 font-semibold text-primary hover:bg-primary/5">
+                  Add to Cart
+                </button>
+                <Link to="/cart" onClick={handleAdd} className="flex-1 grid place-items-center rounded-xl bg-primary py-3 font-semibold text-primary-foreground hover:bg-primary/90">
+                  Buy Now
+                </Link>
+              </div>
+            </>
+          )}
+
 
           <div className="mt-6 space-y-2 rounded-xl border border-border bg-card p-4 text-sm">
             <div className="flex items-center gap-2"><Truck className="h-4 w-4 text-accent" /> Standard delivery in 4–6 days · Free</div>
