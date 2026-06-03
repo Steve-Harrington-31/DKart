@@ -27,7 +27,7 @@ function HomePage() {
     (async () => {
       const [{ data: c }, { data: p }] = await Promise.all([
         supabase.from("categories").select("*"),
-        supabase.from("products").select("id,name,price,original_price,images,rating,review_count,express_shipping").order("monthly_sales", { ascending: false }).limit(12),
+        supabase.from("products").select("id,name,price,original_price,images,rating,review_count,express_shipping,quantity").order("monthly_sales", { ascending: false }).limit(12),
       ]);
       setCats(c ?? []);
       setProducts((p ?? []) as any);

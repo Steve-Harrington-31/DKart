@@ -27,7 +27,7 @@ function CategoriesPage() {
     if (!active) return;
     supabase
       .from("products")
-      .select("id,name,price,original_price,images,rating,review_count,express_shipping")
+      .select("id,name,price,original_price,images,rating,review_count,express_shipping,quantity")
       .eq("category_id", active)
       .then(({ data }) => setProducts((data ?? []) as any));
   }, [active]);
