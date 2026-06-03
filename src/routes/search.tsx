@@ -25,7 +25,7 @@ function SearchPage() {
     setLoading(true);
     supabase
       .from("products")
-      .select("id,name,price,original_price,images,rating,review_count,express_shipping")
+      .select("id,name,price,original_price,images,rating,review_count,express_shipping,quantity")
       .ilike("name", `%${q}%`)
       .limit(40)
       .then(({ data }) => { setResults((data ?? []) as any); setLoading(false); });

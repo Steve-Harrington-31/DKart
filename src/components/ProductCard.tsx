@@ -15,6 +15,7 @@ export type Product = {
   rating: number;
   review_count?: number;
   express_shipping?: boolean;
+  quantity?: number;
 };
 
 export function ProductCard({ p }: { p: Product }) {
@@ -23,9 +24,11 @@ export function ProductCard({ p }: { p: Product }) {
   const toggleWish = useWishlist((s) => s.toggle);
   const inWish = useWishlist((s) => s.has(p.id));
   const pct = discountPct(p.price, p.original_price);
+  const outOfStock = p.quantity !== undefined && p.quantity <= 0;
 
   const handleAdd = async () => {
     if (!user) return toast.error("Please login to add to cart");
+    if (outOfStock) return toast.error("Out of stock");
     await addToCart(user.id, p.id);
     toast.success("Added to cart");
   };
@@ -37,13 +40,18 @@ export function ProductCard({ p }: { p: Product }) {
   return (
     <div className="group rounded-2xl bg-card border border-border overflow-hidden flex flex-col">
       <Link to="/products/$id" params={{ id: p.id }} className="relative block aspect-square bg-muted">
-        <img src={p.images[0]} alt={p.name} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-105" />
-        {pct > 0 && (
+        <img src={p.images[0]} alt={p.name} loading="lazy" className={`h-full w-full object-cover transition group-hover:scale-105 ${outOfStock ? "opacity-50" : ""}`} />
+        {pct > 0 && !outOfStock && (
           <span className="absolute top-2 left-2 rounded-md bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
             {pct}% OFF
           </span>
         )}
-        {p.express_shipping && (
+        {outOfStock && (
+          <span className="absolute top-2 left-2 rounded-md bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
+            OUT OF STOCK
+          </span>
+        )}
+        {p.express_shipping && !outOfStock && (
           <span className="absolute top-2 right-9 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
             EXPRESS
           </span>
@@ -73,10 +81,12 @@ export function ProductCard({ p }: { p: Product }) {
         </div>
         <button
           onClick={handleAdd}
-          className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition"
+          disabled={outOfStock}
+          className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
         >
-          Add to Cart
+          {outOfStock ? "Sold Out" : "Add to Cart"}
         </button>
+
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import toast from "react-hot-toast";
 import { CreditCard, Smartphone, Wallet, Banknote, ShieldCheck } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -7,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useCart } from "@/store/cart-store";
 import { supabase } from "@/integrations/supabase/client";
 import { formatINR } from "@/lib/format";
+import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/razorpay.functions";
 
 export const Route = createFileRoute("/payment")({
   validateSearch: (s: Record<string, unknown>) => ({ addr: (s.addr as string) || "" }),
@@ -15,11 +17,25 @@ export const Route = createFileRoute("/payment")({
 });
 
 const methods = [
-  { id: "upi", label: "UPI", icon: Smartphone, desc: "Google Pay, PhonePe, Paytm" },
-  { id: "card", label: "Credit/Debit Card", icon: CreditCard, desc: "Visa, Mastercard, RuPay" },
-  { id: "wallet", label: "Wallets", icon: Wallet, desc: "Paytm, Amazon Pay" },
+  { id: "razorpay", label: "UPI / Card / Wallet", icon: Smartphone, desc: "Pay securely via Razorpay (UPI, cards, netbanking, wallets)" },
   { id: "cod", label: "Cash on Delivery", icon: Banknote, desc: "Pay when you receive" },
 ];
+
+declare global {
+  interface Window { Razorpay: any }
+}
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if (window.Razorpay) return resolve(true);
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
 
 function PaymentPage() {
   const { user, loading } = useAuth();
@@ -28,8 +44,11 @@ function PaymentPage() {
   const items = useCart((s) => s.items);
   const total = useCart((s) => s.total());
   const clearCart = useCart((s) => s.clear);
-  const [method, setMethod] = useState("upi");
+  const [method, setMethod] = useState("razorpay");
   const [paying, setPaying] = useState(false);
+
+  const createOrder = useServerFn(createRazorpayOrder);
+  const verifyPayment = useServerFn(verifyRazorpayPayment);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -39,43 +58,88 @@ function PaymentPage() {
   if (items.length === 0) { navigate({ to: "/home" }); return null; }
   if (!addr) { navigate({ to: "/checkout" }); return null; }
 
+  const persistOrder = async (paymentId: string, paymentStatus: string, status: "processing" | "pending") => {
+    const { data: address } = await supabase.from("addresses").select("*").eq("id", addr).single();
+    if (!address) throw new Error("Address not found");
+    const { data: order, error } = await supabase
+      .from("orders")
+      .insert({
+        user_id: user.id,
+        total_amount: total,
+        shipping_address: address,
+        payment_id: paymentId,
+        payment_status: paymentStatus,
+        status,
+      })
+      .select()
+      .single();
+    if (error || !order) throw error || new Error("Order failed");
+
+    const orderItems = items.map((i) => ({
+      order_id: order.id,
+      product_id: i.product_id,
+      product_name: i.product.name,
+      product_image: i.product.images[0] ?? null,
+      price: i.product.price,
+      quantity: i.quantity,
+    }));
+    await supabase.from("order_items").insert(orderItems);
+    await clearCart(user.id);
+    navigate({ to: "/order-confirmation", search: { id: order.id } });
+  };
+
   const placeOrder = async () => {
     setPaying(true);
     try {
-      const { data: address } = await supabase.from("addresses").select("*").eq("id", addr).single();
-      if (!address) throw new Error("Address not found");
+      if (method === "cod") {
+        await persistOrder(`cod_${Date.now()}`, "pending", "pending");
+        return;
+      }
 
-      // Razorpay test stub — real integration swaps in once keys are provided
-      await new Promise((r) => setTimeout(r, 1200));
-      const paymentId = `test_${Date.now()}`;
-      const paymentStatus = method === "cod" ? "pending" : "test";
+      const ok = await loadRazorpayScript();
+      if (!ok) throw new Error("Couldn't load Razorpay. Check your connection.");
 
-      const { data: order, error } = await supabase
-        .from("orders")
-        .insert({
-          user_id: user.id,
-          total_amount: total,
-          shipping_address: address,
-          payment_id: paymentId,
-          payment_status: paymentStatus,
-          status: "processing",
-        })
-        .select()
-        .single();
-      if (error || !order) throw error || new Error("Order failed");
+      const orderRes = await createOrder({ data: { amount: Math.round(total * 100) } });
+      if (orderRes.error || !orderRes.order || !orderRes.keyId) {
+        throw new Error(orderRes.error || "Failed to create payment order");
+      }
 
-      const orderItems = items.map((i) => ({
-        order_id: order.id,
-        product_id: i.product_id,
-        product_name: i.product.name,
-        product_image: i.product.images[0] ?? null,
-        price: i.product.price,
-        quantity: i.quantity,
-      }));
-      await supabase.from("order_items").insert(orderItems);
-
-      await clearCart(user.id);
-      navigate({ to: "/order-confirmation", search: { id: order.id } });
+      await new Promise<void>((resolve, reject) => {
+        const rzp = new window.Razorpay({
+          key: orderRes.keyId,
+          amount: orderRes.order.amount,
+          currency: orderRes.order.currency,
+          name: "DKart",
+          description: `Order of ${items.length} item${items.length > 1 ? "s" : ""}`,
+          order_id: orderRes.order.id,
+          prefill: { email: user.email },
+          theme: { color: "#1B5E20" },
+          handler: async (resp: any) => {
+            try {
+              const v = await verifyPayment({
+                data: {
+                  razorpay_order_id: resp.razorpay_order_id,
+                  razorpay_payment_id: resp.razorpay_payment_id,
+                  razorpay_signature: resp.razorpay_signature,
+                },
+              });
+              if (!v.valid) {
+                reject(new Error(v.error || "Payment verification failed"));
+                return;
+              }
+              await persistOrder(resp.razorpay_payment_id, "paid", "processing");
+              resolve();
+            } catch (e) {
+              reject(e);
+            }
+          },
+          modal: {
+            ondismiss: () => reject(new Error("Payment cancelled")),
+          },
+        });
+        rzp.on("payment.failed", (r: any) => reject(new Error(r?.error?.description || "Payment failed")));
+        rzp.open();
+      });
     } catch (e: any) {
       toast.error(e.message || "Payment failed");
     } finally {
@@ -104,7 +168,7 @@ function PaymentPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <ShieldCheck className="h-4 w-4 text-success" /> 100% secure payments. This project runs in test mode until Razorpay keys are added.
+            <ShieldCheck className="h-4 w-4 text-success" /> Payments are processed securely by Razorpay.
           </div>
         </div>
 
