@@ -166,6 +166,8 @@ function ProductDetail() {
           )}
         </div>
       </div>
+      <Reviews productId={p.id} />
     </AppShell>
   );
 }
+
