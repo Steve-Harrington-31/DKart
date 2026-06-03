@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Heart, Minus, Plus, Star, Truck, Zap, ShieldCheck } from "lucide-react";
+import { Heart, Minus, Plus, Star, Truck, Zap, ShieldCheck, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 import { AppShell } from "@/components/AppShell";
+import { Reviews } from "@/components/Reviews";
 import { supabase } from "@/integrations/supabase/client";
 import { formatINR, discountPct } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
@@ -41,9 +42,18 @@ function ProductDetail() {
 
   useEffect(() => {
     supabase.from("products").select("*").eq("id", id).single().then(({ data }) => setP(data as any));
+    const channel = supabase
+      .channel(`product-${id}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "products", filter: `id=eq.${id}` },
+        (payload) => setP((prev) => prev ? { ...prev, ...(payload.new as any) } : (payload.new as any)))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [id]);
 
   if (!p) return <AppShell><div className="h-96 grid place-items-center text-muted-foreground">Loading…</div></AppShell>;
+
+  const outOfStock = p.quantity <= 0;
+  const lowStock = !outOfStock && p.quantity <= 5;
 
   const pct = discountPct(p.price, p.original_price);
 
