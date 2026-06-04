@@ -1,5 +1,5 @@
 import { Link, Outlet, createFileRoute, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Package, ListOrdered, Users, Tag, BarChart3, ArrowLeft, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ListOrdered, Users, Tag, BarChart3, ArrowLeft, LogOut, Ticket } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
 
@@ -13,6 +13,7 @@ const nav = [
   { to: "/admin/products", label: "Products", icon: Package },
   { to: "/admin/categories", label: "Categories", icon: Tag },
   { to: "/admin/orders", label: "Orders", icon: ListOrdered },
+  { to: "/admin/coupons", label: "Coupons", icon: Ticket },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/reports", label: "Reports", icon: BarChart3 },
 ];

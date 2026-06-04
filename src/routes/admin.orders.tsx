@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatINR } from "@/lib/format";
+import { sendOrderStatusEmail } from "@/lib/email";
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrders,
@@ -27,7 +28,20 @@ function AdminOrders() {
   const updateStatus = async (id: string, status: Status) => {
     const { error } = await supabase.from("orders").update({ status }).eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success("Updated"); load();
+    toast.success("Updated");
+    const o = orders.find((x) => x.id === id);
+    if (o) {
+      const { data: profile } = await supabase.from("profiles").select("email,full_name").eq("id", o.user_id).maybeSingle();
+      if (profile?.email) {
+        sendOrderStatusEmail({
+          to_email: profile.email,
+          to_name: profile.full_name || o.shipping_address?.full_name || "Customer",
+          order_id: o.id.slice(0, 8).toUpperCase(),
+          status,
+        });
+      }
+    }
+    load();
   };
 
   return (

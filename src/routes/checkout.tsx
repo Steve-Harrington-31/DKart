@@ -5,6 +5,7 @@ import { MapPin, Plus, Check } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/store/cart-store";
+import { useCoupon } from "@/store/coupon-store";
 import { supabase } from "@/integrations/supabase/client";
 import { formatINR } from "@/lib/format";
 
@@ -30,6 +31,8 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const items = useCart((s) => s.items);
   const total = useCart((s) => s.total());
+  const coupon = useCoupon((s) => s.coupon);
+  const finalTotal = Math.max(0, total - (coupon?.discount ?? 0));
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -116,10 +119,11 @@ function CheckoutPage() {
         <aside className="rounded-2xl border border-border bg-card p-4 h-fit space-y-3">
           <h3 className="font-bold text-foreground">Price Details</h3>
           <Row label={`Items (${items.length})`} value={formatINR(total)} />
+          {coupon && <Row label={`Coupon (${coupon.code})`} value={`- ${formatINR(coupon.discount)}`} accent />}
           <Row label="Delivery" value="FREE" accent />
           <div className="border-t border-dashed border-border my-2" />
-          <Row label="Total" value={formatINR(total)} bold />
-          <button onClick={proceed} className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground hover:bg-primary/90">
+          <Row label="Total" value={formatINR(finalTotal)} bold />
+          <button onClick={proceed} className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
             Continue to Payment
           </button>
         </aside>
