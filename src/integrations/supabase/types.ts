@@ -112,6 +112,51 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_discount_amount: number | null
+          min_order_amount: number
+          type: Database["public"]["Enums"]["coupon_type"]
+          updated_at: string
+          usage_limit: number | null
+          used_count: number
+          value: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          min_order_amount?: number
+          type?: Database["public"]["Enums"]["coupon_type"]
+          updated_at?: string
+          usage_limit?: number | null
+          used_count?: number
+          value: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          min_order_amount?: number
+          type?: Database["public"]["Enums"]["coupon_type"]
+          updated_at?: string
+          usage_limit?: number | null
+          used_count?: number
+          value?: number
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           id: string
@@ -159,7 +204,9 @@ export type Database = {
       }
       orders: {
         Row: {
+          coupon_code: string | null
           created_at: string
+          discount_amount: number
           id: string
           payment_id: string | null
           payment_status: string
@@ -169,7 +216,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          coupon_code?: string | null
           created_at?: string
+          discount_amount?: number
           id?: string
           payment_id?: string | null
           payment_status?: string
@@ -179,7 +228,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          coupon_code?: string | null
           created_at?: string
+          discount_amount?: number
           id?: string
           payment_id?: string | null
           payment_status?: string
@@ -385,6 +436,7 @@ export type Database = {
     }
     Enums: {
       app_role: "customer" | "admin"
+      coupon_type: "flat" | "percent"
       order_status:
         | "pending"
         | "processing"
@@ -520,6 +572,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["customer", "admin"],
+      coupon_type: ["flat", "percent"],
       order_status: [
         "pending",
         "processing",
