@@ -6,6 +6,9 @@ import { CreditCard, Smartphone, Wallet, Banknote, ShieldCheck } from "lucide-re
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/store/cart-store";
+import { useCoupon } from "@/store/coupon-store";
+import { incrementCouponUsage } from "@/lib/coupons";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 import { supabase } from "@/integrations/supabase/client";
 import { formatINR } from "@/lib/format";
 import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/razorpay.functions";
@@ -42,8 +45,11 @@ function PaymentPage() {
   const { addr } = Route.useSearch();
   const navigate = useNavigate();
   const items = useCart((s) => s.items);
-  const total = useCart((s) => s.total());
+  const subtotal = useCart((s) => s.total());
   const clearCart = useCart((s) => s.clear);
+  const coupon = useCoupon((s) => s.coupon);
+  const clearCoupon = useCoupon((s) => s.clear);
+  const total = Math.max(0, subtotal - (coupon?.discount ?? 0));
   const [method, setMethod] = useState("razorpay");
   const [paying, setPaying] = useState(false);
 
@@ -70,6 +76,8 @@ function PaymentPage() {
         payment_id: paymentId,
         payment_status: paymentStatus,
         status,
+        coupon_code: coupon?.code ?? null,
+        discount_amount: coupon?.discount ?? 0,
       })
       .select()
       .single();
@@ -84,7 +92,20 @@ function PaymentPage() {
       quantity: i.quantity,
     }));
     await supabase.from("order_items").insert(orderItems);
+    if (coupon) await incrementCouponUsage(coupon.code);
     await clearCart(user.id);
+    clearCoupon();
+
+    // Fire-and-forget confirmation email
+    sendOrderConfirmationEmail({
+      to_email: user.email ?? "",
+      to_name: address.full_name,
+      order_id: order.id.slice(0, 8).toUpperCase(),
+      total: formatINR(total),
+      items_count: items.length,
+      address: `${address.address_line1}, ${address.city}, ${address.state} - ${address.pincode}`,
+    });
+
     navigate({ to: "/order-confirmation", search: { id: order.id } });
   };
 
@@ -174,11 +195,12 @@ function PaymentPage() {
 
         <aside className="rounded-2xl border border-border bg-card p-4 h-fit space-y-3">
           <h3 className="font-bold text-foreground">Order Total</h3>
-          <div className="flex justify-between text-sm text-muted-foreground"><span>Items ({items.length})</span><span>{formatINR(total)}</span></div>
+          <div className="flex justify-between text-sm text-muted-foreground"><span>Items ({items.length})</span><span>{formatINR(subtotal)}</span></div>
+          {coupon && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Coupon ({coupon.code})</span><span className="text-success font-semibold">- {formatINR(coupon.discount)}</span></div>}
           <div className="flex justify-between text-sm text-muted-foreground"><span>Delivery</span><span className="text-success font-semibold">FREE</span></div>
           <div className="border-t border-dashed border-border my-2" />
           <div className="flex justify-between font-bold text-foreground"><span>To Pay</span><span>{formatINR(total)}</span></div>
-          <button disabled={paying} onClick={placeOrder} className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+          <button disabled={paying} onClick={placeOrder} className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors">
             {paying ? "Processing…" : method === "cod" ? `Place Order • ${formatINR(total)}` : `Pay ${formatINR(total)}`}
           </button>
         </aside>

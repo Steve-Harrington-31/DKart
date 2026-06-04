@@ -4,6 +4,7 @@ import { Heart, Minus, Plus, Star, Truck, Zap, ShieldCheck, AlertTriangle } from
 import toast from "react-hot-toast";
 import { AppShell } from "@/components/AppShell";
 import { Reviews } from "@/components/Reviews";
+import { ImageZoom } from "@/components/ImageZoom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatINR, discountPct } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
@@ -67,9 +68,7 @@ function ProductDetail() {
     <AppShell hideSearch>
       <div className="grid md:grid-cols-2 gap-6">
         <div>
-          <div className="aspect-square rounded-2xl bg-card border border-border overflow-hidden">
-            <img src={p.images[img]} alt={p.name} className="h-full w-full object-cover" />
-          </div>
+          <ImageZoom src={p.images[img]} alt={p.name} />
           {p.images.length > 1 && (
             <div className="mt-3 flex gap-2 overflow-x-auto">
               {p.images.map((src, i) => (
