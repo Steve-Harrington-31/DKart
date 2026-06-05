@@ -31,15 +31,9 @@ function AdminUsers() {
   useEffect(() => { load(); }, []);
 
   const toggleAdmin = async (userId: string, isAdmin: boolean) => {
-    if (isAdmin) {
-      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "admin");
-      if (error) return toast.error(error.message);
-      toast.success("Admin revoked");
-    } else {
-      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
-      if (error) return toast.error(error.message);
-      toast.success("Promoted to admin");
-    }
+    const r = await toggleAdminFn({ data: { user_id: userId, make_admin: !isAdmin } });
+    if (r.error) return toast.error(r.error);
+    toast.success(isAdmin ? "Admin revoked" : "Promoted to admin");
     load();
   };
 
