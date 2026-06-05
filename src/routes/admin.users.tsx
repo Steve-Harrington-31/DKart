@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import toast from "react-hot-toast";
 import { Shield, ShieldOff, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { adminToggleUserAdmin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/users")({
   component: AdminUsers,
