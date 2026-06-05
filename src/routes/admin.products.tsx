@@ -178,7 +178,7 @@ function ProductDialog({ product, cats, onClose, onSaved }: { product: Product; 
             <select className={input} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as any })}>
               <option value="available">Available</option>
               <option value="out_of_stock">Out of Stock</option>
-              <option value="discontinued">Discontinued</option>
+              <option value="low_stock">Low Stock</option>
             </select>
           </Field>
           <label className="flex items-end gap-2 text-sm pb-2">
