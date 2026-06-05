@@ -22,7 +22,7 @@ type Product = {
   images: string[];
   quantity: number;
   express_shipping: boolean;
-  status: "available" | "out_of_stock" | "discontinued";
+  status: "available" | "low_stock" | "out_of_stock";
 };
 
 const empty: Product = {
@@ -35,6 +35,7 @@ function AdminProducts() {
   const [cats, setCats] = useState<any[]>([]);
   const [editing, setEditing] = useState<Product | null>(null);
   const [search, setSearch] = useState("");
+  const deleteFn = useServerFn(adminDeleteProduct);
 
   const load = async () => {
     const { data } = await supabase.from("products").select("*, categories(name)").order("created_at", { ascending: false });
@@ -47,8 +48,8 @@ function AdminProducts() {
 
   const remove = async (id: string) => {
     if (!confirm("Delete this product?")) return;
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    const r = await deleteFn({ data: { id } });
+    if (r.error) return toast.error(r.error);
     toast.success("Deleted");
     load();
   };
@@ -121,31 +122,26 @@ function ProductDialog({ product, cats, onClose, onSaved }: { product: Product; 
   const [imagesCsv, setImagesCsv] = useState(product.images.join("\n"));
   const [saving, setSaving] = useState(false);
   const isEdit = !!product.id;
+  const upsertFn = useServerFn(adminUpsertProduct);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     const images = imagesCsv.split("\n").map((s) => s.trim()).filter(Boolean);
-    const payload: any = {
+    const payload = {
       name: form.name,
-      description: form.description,
-      price: form.price,
-      original_price: form.original_price || null,
+      description: form.description ?? "",
+      price: Number(form.price),
+      original_price: form.original_price ? Number(form.original_price) : null,
       category_id: form.category_id || null,
       images,
-      quantity: form.quantity,
+      quantity: Number(form.quantity),
       express_shipping: form.express_shipping,
       status: form.status,
     };
-    let res;
-    if (isEdit) {
-      res = await supabase.from("products").update(payload).eq("id", product.id!);
-    } else {
-      payload.reference_id = "DK" + Math.random().toString(36).slice(2, 10).toUpperCase();
-      res = await supabase.from("products").insert(payload);
-    }
+    const r = await upsertFn({ data: { id: isEdit ? product.id : undefined, data: payload } });
     setSaving(false);
-    if (res.error) return toast.error(res.error.message);
+    if (r.error) return toast.error(r.error);
     toast.success(isEdit ? "Updated" : "Created");
     onSaved();
   };
