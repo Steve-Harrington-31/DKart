@@ -22,12 +22,14 @@ export function Reviews({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
-    const { data } = await supabase
-      .from("reviews_public")
-      .select("id,rating,comment,created_at,display_name")
-      .eq("product_id", productId)
-      .order("created_at", { ascending: false });
-    setReviews((data ?? []) as Review[]);
+    const { data } = await supabase.rpc("get_product_reviews", { _product_id: productId });
+    setReviews(((data ?? []) as any[]).map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      created_at: r.created_at,
+      display_name: r.display_name,
+    })));
 
     if (user) {
       const { data: mine } = await supabase
