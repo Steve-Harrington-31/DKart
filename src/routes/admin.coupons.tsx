@@ -1,8 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import toast from "react-hot-toast";
 import { Plus, Trash2, Tag, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  adminUpsertCoupon,
+  adminDeleteCoupon,
+  adminToggleCouponActive,
+} from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/coupons")({
   component: AdminCoupons,
@@ -37,6 +43,9 @@ function AdminCoupons() {
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const upsertFn = useServerFn(adminUpsertCoupon);
+  const deleteFn = useServerFn(adminDeleteCoupon);
+  const toggleFn = useServerFn(adminToggleCouponActive);
 
   const load = async () => {
     const { data } = await supabase.from("coupons").select("*").order("created_at", { ascending: false });
