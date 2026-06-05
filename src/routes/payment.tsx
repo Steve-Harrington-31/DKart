@@ -44,7 +44,7 @@ function PaymentPage() {
   const { addr } = Route.useSearch();
   const navigate = useNavigate();
   const items = useCart((s) => s.items);
-  const refreshCart = useCart((s) => s.refresh);
+  const refreshCart = useCart((s) => s.load);
   const subtotal = useCart((s) => s.total());
   const coupon = useCoupon((s) => s.coupon);
   const clearCoupon = useCoupon((s) => s.clear);
