@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import toast from "react-hot-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatINR } from "@/lib/format";
 import { sendOrderStatusEmail } from "@/lib/email";
+import { adminUpdateOrderStatus } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrders,
@@ -16,6 +18,7 @@ function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [filter, setFilter] = useState<Status | "all">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const updateStatusFn = useServerFn(adminUpdateOrderStatus);
 
   const load = async () => {
     let q = supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false });
@@ -26,8 +29,8 @@ function AdminOrders() {
   useEffect(() => { load(); }, [filter]);
 
   const updateStatus = async (id: string, status: Status) => {
-    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
-    if (error) return toast.error(error.message);
+    const r = await updateStatusFn({ data: { order_id: id, status } });
+    if (r.error) return toast.error(r.error);
     toast.success("Updated");
     const o = orders.find((x) => x.id === id);
     if (o) {
