@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import toast from "react-hot-toast";
 import { Plus, Pencil, Trash2, X, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatINR } from "@/lib/format";
+import { adminUpsertProduct, adminDeleteProduct } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/products")({
   component: AdminProducts,
