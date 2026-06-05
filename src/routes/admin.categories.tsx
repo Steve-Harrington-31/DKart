@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import toast from "react-hot-toast";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { adminUpsertCategory, adminDeleteCategory } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/categories")({
   component: AdminCategories,
@@ -14,6 +16,7 @@ const empty: Category = { name: "", slug: "", image_url: "" };
 function AdminCategories() {
   const [list, setList] = useState<any[]>([]);
   const [editing, setEditing] = useState<Category | null>(null);
+  const deleteFn = useServerFn(adminDeleteCategory);
 
   const load = async () => {
     const { data } = await supabase.from("categories").select("*").order("name");
@@ -23,8 +26,8 @@ function AdminCategories() {
 
   const remove = async (id: string) => {
     if (!confirm("Delete this category?")) return;
-    const { error } = await supabase.from("categories").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    const r = await deleteFn({ data: { id } });
+    if (r.error) return toast.error(r.error);
     toast.success("Deleted"); load();
   };
 
@@ -61,15 +64,18 @@ function Dialog({ cat, onClose, onSaved }: { cat: Category; onClose: () => void;
   const [saving, setSaving] = useState(false);
   const isEdit = !!cat.id;
   const input = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
+  const upsertFn = useServerFn(adminUpsertCategory);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
-    const payload = { name: form.name, slug: form.slug || form.name.toLowerCase().replace(/\s+/g, "-"), image_url: form.image_url };
-    const res = isEdit
-      ? await supabase.from("categories").update(payload).eq("id", cat.id!)
-      : await supabase.from("categories").insert(payload);
+    const payload = {
+      name: form.name,
+      slug: (form.slug || form.name.toLowerCase().replace(/\s+/g, "-")).toLowerCase(),
+      image_url: form.image_url ?? "",
+    };
+    const r = await upsertFn({ data: { id: isEdit ? cat.id : undefined, data: payload } });
     setSaving(false);
-    if (res.error) return toast.error(res.error.message);
+    if (r.error) return toast.error(r.error);
     toast.success("Saved"); onSaved();
   };
 

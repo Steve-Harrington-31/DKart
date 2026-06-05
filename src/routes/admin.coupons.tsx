@@ -1,8 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import toast from "react-hot-toast";
 import { Plus, Trash2, Tag, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  adminUpsertCoupon,
+  adminDeleteCoupon,
+  adminToggleCouponActive,
+} from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/coupons")({
   component: AdminCoupons,
@@ -37,6 +43,9 @@ function AdminCoupons() {
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const upsertFn = useServerFn(adminUpsertCoupon);
+  const deleteFn = useServerFn(adminDeleteCoupon);
+  const toggleFn = useServerFn(adminToggleCouponActive);
 
   const load = async () => {
     const { data } = await supabase.from("coupons").select("*").order("created_at", { ascending: false });
@@ -46,20 +55,18 @@ function AdminCoupons() {
 
   const submit = async () => {
     if (!form.code.trim()) return toast.error("Code required");
-    const payload: any = {
+    const payload = {
       code: form.code.trim().toUpperCase(),
       type: form.type,
       value: Number(form.value),
       min_order_amount: Number(form.min_order_amount) || 0,
       max_discount_amount: form.max_discount_amount === "" ? null : Number(form.max_discount_amount),
       usage_limit: form.usage_limit === "" ? null : Number(form.usage_limit),
-      expires_at: form.expires_at || null,
+      expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
       is_active: form.is_active,
     };
-    const { error } = editing
-      ? await supabase.from("coupons").update(payload).eq("id", editing)
-      : await supabase.from("coupons").insert(payload);
-    if (error) return toast.error(error.message);
+    const r = await upsertFn({ data: { id: editing ?? undefined, data: payload } });
+    if (r.error) return toast.error(r.error);
     toast.success(editing ? "Updated" : "Created");
     setForm(empty); setEditing(null); setOpen(false); load();
   };
@@ -81,12 +88,14 @@ function AdminCoupons() {
 
   const remove = async (id: string) => {
     if (!confirm("Delete this coupon?")) return;
-    await supabase.from("coupons").delete().eq("id", id);
+    const r = await deleteFn({ data: { id } });
+    if (r.error) return toast.error(r.error);
     load();
   };
 
   const toggleActive = async (c: Coupon) => {
-    await supabase.from("coupons").update({ is_active: !c.is_active }).eq("id", c.id);
+    const r = await toggleFn({ data: { id: c.id, is_active: !c.is_active } });
+    if (r.error) return toast.error(r.error);
     load();
   };
 

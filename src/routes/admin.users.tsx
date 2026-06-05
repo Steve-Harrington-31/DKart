@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import toast from "react-hot-toast";
 import { Shield, ShieldOff, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { adminToggleUserAdmin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/users")({
   component: AdminUsers,
@@ -12,6 +14,7 @@ function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<Record<string, string[]>>({});
   const [search, setSearch] = useState("");
+  const toggleAdminFn = useServerFn(adminToggleUserAdmin);
 
   const load = async () => {
     const [{ data: profiles }, { data: r }] = await Promise.all([
@@ -28,15 +31,9 @@ function AdminUsers() {
   useEffect(() => { load(); }, []);
 
   const toggleAdmin = async (userId: string, isAdmin: boolean) => {
-    if (isAdmin) {
-      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "admin");
-      if (error) return toast.error(error.message);
-      toast.success("Admin revoked");
-    } else {
-      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
-      if (error) return toast.error(error.message);
-      toast.success("Promoted to admin");
-    }
+    const r = await toggleAdminFn({ data: { user_id: userId, make_admin: !isAdmin } });
+    if (r.error) return toast.error(r.error);
+    toast.success(isAdmin ? "Admin revoked" : "Promoted to admin");
     load();
   };
 
