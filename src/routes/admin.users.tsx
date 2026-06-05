@@ -14,6 +14,7 @@ function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<Record<string, string[]>>({});
   const [search, setSearch] = useState("");
+  const toggleAdminFn = useServerFn(adminToggleUserAdmin);
 
   const load = async () => {
     const [{ data: profiles }, { data: r }] = await Promise.all([
