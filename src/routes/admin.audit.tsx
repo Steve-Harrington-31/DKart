@@ -29,15 +29,26 @@ function AdminAudit() {
       setLoading(true);
       let q = supabase
         .from("admin_audit_log")
-        .select("*, actor:profiles!admin_audit_log_actor_id_fkey(full_name,email)")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(200);
       if (entity !== "all") q = q.eq("entity", entity);
       const { data } = await q;
-      setRows((data as any) ?? []);
+      const list = (data as Row[]) ?? [];
+      const ids = Array.from(new Set(list.map((r) => r.actor_id))).filter(Boolean);
+      if (ids.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id,full_name,email")
+          .in("id", ids);
+        const map = new Map((profs ?? []).map((p: any) => [p.id, p]));
+        list.forEach((r) => { r.actor = map.get(r.actor_id) ?? null; });
+      }
+      setRows(list);
       setLoading(false);
     })();
   }, [entity]);
+
 
   return (
     <div>
