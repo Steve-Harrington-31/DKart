@@ -1,5 +1,5 @@
 import { Link, Outlet, createFileRoute, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Package, ListOrdered, Users, Tag, BarChart3, ArrowLeft, LogOut, Ticket } from "lucide-react";
+import { LayoutDashboard, Package, ListOrdered, Users, Tag, BarChart3, ArrowLeft, LogOut, Ticket, ScrollText } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
 
@@ -16,7 +16,9 @@ const nav = [
   { to: "/admin/coupons", label: "Coupons", icon: Ticket },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/reports", label: "Reports", icon: BarChart3 },
+  { to: "/admin/audit", label: "Audit Log", icon: ScrollText },
 ];
+
 
 function AdminLayout() {
   const { user, loading, isAdmin, signOut } = useAuth();
