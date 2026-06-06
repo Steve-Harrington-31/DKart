@@ -16,6 +16,27 @@ async function assertAdmin(ctx: { supabase: any; userId: string }) {
   if (error || data !== true) throw new Error("Forbidden: admin role required");
 }
 
+async function logAudit(
+  ctx: { supabase: any; userId: string },
+  entity: string,
+  action: string,
+  entity_id: string | null,
+  details: Record<string, any> = {},
+) {
+  try {
+    await ctx.supabase.from("admin_audit_log").insert({
+      actor_id: ctx.userId,
+      entity,
+      action,
+      entity_id,
+      details,
+    });
+  } catch {
+    // Never block the mutation on audit failure
+  }
+}
+
+
 // ---------- Users / roles ----------
 
 const ToggleAdminInput = z.object({
