@@ -7,6 +7,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { Calendar, Search, X } from "lucide-react";
 import { adminGetAuditLogs } from "@/lib/admin.functions";
 
+type SearchState = z.infer<typeof auditSearchSchema>;
+
 const auditSearchSchema = z.object({
   entity: fallback(z.string(), "").default(""),
   action: fallback(z.string(), "").default(""),
