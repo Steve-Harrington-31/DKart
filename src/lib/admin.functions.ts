@@ -254,3 +254,47 @@ export const adminUpdateOrderStatus = createServerFn({ method: "POST" })
     return { error: null };
   });
 
+// ---------- Audit log queries ----------
+
+const AuditLogFilter = z.object({
+  entity: z.string().max(64).optional(),
+  action: z.string().max(64).optional(),
+  entity_id: z.string().uuid().optional(),
+  date_from: z.string().max(24).optional(),
+  date_to: z.string().max(24).optional(),
+});
+
+export const adminGetAuditLogs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => AuditLogFilter.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as any);
+    const ctx = context as any;
+    let q = ctx.supabase
+      .from("admin_audit_log")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (data.entity) q = q.eq("entity", data.entity);
+    if (data.action) q = q.eq("action", data.action);
+    if (data.entity_id) q = q.eq("entity_id", data.entity_id);
+    if (data.date_from) q = q.gte("created_at", data.date_from);
+    if (data.date_to) q = q.lte("created_at", data.date_to + "T23:59:59.999Z");
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    const list = (rows ?? []) as any[];
+    const ids = Array.from(new Set(list.map((r) => r.actor_id))).filter(Boolean);
+    let actors: Map<string, any> = new Map();
+    if (ids.length) {
+      const { data: profs } = await ctx.supabase
+        .from("profiles")
+        .select("id,full_name,email")
+        .in("id", ids);
+      actors = new Map((profs ?? []).map((p: any) => [p.id, p]));
+    }
+    return list.map((r) => ({
+      ...r,
+      actor: actors.get(r.actor_id) ?? null,
+    }));
+  });
+
