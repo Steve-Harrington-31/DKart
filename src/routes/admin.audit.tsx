@@ -82,8 +82,8 @@ function AdminAudit() {
   const hasFilters =
     search.entity || search.action || search.entity_id || search.date_from || search.date_to;
 
-  const updateFilter = (patch: Partial<z.infer<typeof auditSearchSchema>>) => {
-    navigate({ search: (prev) => ({ ...prev, ...patch }) });
+  const updateFilter = (patch: Partial<SearchState>) => {
+    navigate({ search: (prev: SearchState) => ({ ...prev, ...patch }) });
   };
 
   const clearFilters = () => {
