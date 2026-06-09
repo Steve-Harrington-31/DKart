@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Calendar, Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Calendar, Search, X, Radio } from "lucide-react";
 import { adminGetAuditLogs } from "@/lib/admin.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 type SearchState = z.infer<typeof auditSearchSchema>;
 
