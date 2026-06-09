@@ -79,7 +79,27 @@ function AdminAudit() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.id });
   const getLogs = useServerFn(adminGetAuditLogs);
+  const queryClient = useQueryClient();
   const { data: rows } = useSuspenseQuery(auditQueryOptions(search));
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-audit-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "admin_audit_log" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["admin-audit-logs"] });
+        },
+      )
+      .subscribe((status) => {
+        setLive(status === "SUBSCRIBED");
+      });
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const hasFilters =
     search.entity || search.action || search.entity_id || search.date_from || search.date_to;
