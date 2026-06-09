@@ -117,7 +117,14 @@ function AdminAudit() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="text-2xl font-bold text-foreground">Audit Log</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground">Audit Log</h1>
+          {live && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-500">
+              <Radio className="h-3 w-3" /> Live
+            </span>
+          )}
+        </div>
         {hasFilters && (
           <button
             onClick={clearFilters}
