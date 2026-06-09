@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Calendar, Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Calendar, Search, X, Radio } from "lucide-react";
 import { adminGetAuditLogs } from "@/lib/admin.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 type SearchState = z.infer<typeof auditSearchSchema>;
 
@@ -77,7 +79,27 @@ function AdminAudit() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.id });
   const getLogs = useServerFn(adminGetAuditLogs);
+  const queryClient = useQueryClient();
   const { data: rows } = useSuspenseQuery(auditQueryOptions(search));
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-audit-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "admin_audit_log" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["admin-audit-logs"] });
+        },
+      )
+      .subscribe((status) => {
+        setLive(status === "SUBSCRIBED");
+      });
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const hasFilters =
     search.entity || search.action || search.entity_id || search.date_from || search.date_to;
@@ -95,7 +117,14 @@ function AdminAudit() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="text-2xl font-bold text-foreground">Audit Log</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground">Audit Log</h1>
+          {live && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-500">
+              <Radio className="h-3 w-3" /> Live
+            </span>
+          )}
+        </div>
         {hasFilters && (
           <button
             onClick={clearFilters}
